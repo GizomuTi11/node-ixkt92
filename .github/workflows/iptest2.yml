@@ -1,0 +1,8 @@
+name: iptest2
+on:
+  workflow_dispatch:
+jobs:
+  x:
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl -s https://api.ipify.org; echo; sleep 40
