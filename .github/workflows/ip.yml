@@ -1,0 +1,14 @@
+name: ip
+on: workflow_dispatch:
+jobs:
+  x:
+    strategy:
+      fail-fast: false
+      matrix:
+        n: [1,2,3,4,5]
+    runs-on: ubuntu-latest
+    steps:
+      - name: ip
+        run: |
+          echo "JOB=${{ matrix.n }} RUNNER=$RUNNER_NAME"
+          curl -s https://cloudflare.com/cdn-cgi/trace | grep -E '^ip=|^loc='
