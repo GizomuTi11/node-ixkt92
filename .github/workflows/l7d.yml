@@ -2,7 +2,7 @@ name: l7d
 on:
   workflow_dispatch:
     inputs:
-      seconds: { default: '900' }
+      seconds: { default: '600' }
 jobs:
   r:
     strategy:
@@ -17,12 +17,15 @@ jobs:
         run: |
           sudo apt-get update -qq >/dev/null 2>&1
           sudo apt-get install -y -qq xvfb >/dev/null 2>&1
-          npm i puppeteer-core --no-save --no-audit --no-fund >/dev/null 2>&1 || true
+          echo "chrome=$(command -v google-chrome || command -v chromium || echo none)"
+          npm i puppeteer-core --no-save --no-audit --no-fund 2>&1 | tail -2
+          export CHROME_PATH=$(command -v google-chrome || command -v chromium || echo /opt/google/chrome/chrome)
+          echo "CHROME_PATH=$CHROME_PATH" >> "$GITHUB_ENV"
       - name: solve + hit
         run: |
           export TARGET_HOST=velor.win
           unset SOLVE_PROXY SOLVE_PROXY_USER SOLVE_PROXY_PASS
-          for a in 1 2 3; do [ -s cf_cookie.txt ] && break; timeout 210 xvfb-run -a node solve.js >/dev/null 2>&1; sleep 2; done
+          for a in 1 2 3; do [ -s cf_cookie.txt ] && break; timeout 210 xvfb-run -a node solve.js || true; sleep 2; done
           echo "cookie=$(wc -c < cf_cookie.txt 2>/dev/null || echo 0)"
           [ -s cf_cookie.txt ] || { echo NOCOOKIE; exit 0; }
           TARGET_HOST=velor.win PACE_MS=0 node ubgjp.js mixed 20 ${{ inputs.seconds }}
