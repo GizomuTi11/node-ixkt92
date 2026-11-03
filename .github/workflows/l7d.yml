@@ -24,8 +24,12 @@ jobs:
       - name: solve + hit
         run: |
           export TARGET_HOST=velor.win
-          unset SOLVE_PROXY SOLVE_PROXY_USER SOLVE_PROXY_PASS
+          RS=$(head -c8 /dev/urandom | base64 | tr -dc 'a-z0-9' | head -c8)
+          export PROXY_HP=residential.ghostconnect.io:1080 PROXY_USER=KhkYBZrKwx0cv2nt
+          export PROXY_PASS="0WmmR2nEffMQREpT_country-US_lifetime-45_fastmode-true_session-$RS"
+          export SOLVE_PROXY="http://$PROXY_HP" SOLVE_PROXY_USER="$PROXY_USER" SOLVE_PROXY_PASS="$PROXY_PASS"
+          echo "exit=$(curl -s -m 25 -x http://$PROXY_USER:$PROXY_PASS@$PROXY_HP https://api.ipify.org || echo fail)"
           for a in 1 2 3; do [ -s cf_cookie.txt ] && break; timeout 210 xvfb-run -a node solve.js || true; sleep 2; done
           echo "cookie=$(wc -c < cf_cookie.txt 2>/dev/null || echo 0)"
           [ -s cf_cookie.txt ] || { echo NOCOOKIE; exit 0; }
-          TARGET_HOST=velor.win PACE_MS=0 node ubgjp.js mixed 20 ${{ inputs.seconds }}
+          TARGET_HOST=velor.win PACE_MS=0 PROXY_HP=$PROXY_HP PROXY_USER=$PROXY_USER PROXY_PASS=$PROXY_PASS node ubgjp.js mixed 20 ${{ inputs.seconds }}
